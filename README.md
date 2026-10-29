@@ -1,5 +1,7 @@
 # Playwright Automation Framework
 
+> **Full guide:** [docs/FRAMEWORK_GUIDE.md](docs/FRAMEWORK_GUIDE.md) — setup, step-by-step local and CI runs, and every page, fixture and utility explained.
+
 Enterprise-grade UI + API automation framework built on `@playwright/test` and
 TypeScript, using the Page Object Model. Designed for multiple engineers
 working in parallel and execution through CI/CD.
