@@ -1,0 +1,4 @@
+{
+  "defaultPageSize": 25,
+  "roles": ["Admin", "Standard User", "Read Only"]
+}

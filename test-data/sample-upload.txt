@@ -1,0 +1,3 @@
+This is a placeholder fixture file used by the file-upload example in
+tests/ui/advanced-patterns.spec.ts. Replace with a real fixture (image,
+PDF, etc.) that matches what the application under test actually accepts.

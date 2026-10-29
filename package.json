@@ -1,0 +1,45 @@
+{
+  "name": "playwright-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Playwright + TypeScript automation framework (POM, fixtures, API + UI + DB layers)",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:e2e": "playwright test --grep @e2e",
+    "test:api": "playwright test --grep @api",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "cross-env PWDEBUG=1 playwright test",
+    "test:qa": "cross-env ENV=qa playwright test",
+    "test:stage": "cross-env ENV=stage playwright test",
+    "test:saucedemo": "playwright test --project=saucedemo-chromium",
+    "test:saucedemo:smoke": "playwright test --project=saucedemo-chromium --grep @smoke",
+    "test:saucedemo:cross-browser": "playwright test --project=saucedemo-chromium --project=saucedemo-firefox",
+    "report": "playwright show-report reports/html",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@faker-js/faker": "^9.0.0",
+    "@types/mssql": "^12.3.0",
+    "@types/node": "^22.0.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "eslint": "^9.9.0",
+    "eslint-plugin-playwright": "^2.0.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "dependencies": {
+    "mssql": "^12.7.0"
+  }
+}

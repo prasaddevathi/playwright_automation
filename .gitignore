@@ -1,0 +1,19 @@
+node_modules/
+
+# Secrets — never commit real environment files, only the .example templates
+.env
+.env.*
+!.env.example
+!.env.qa.example
+!.env.stage.example
+
+# Auth state contains live session cookies/tokens
+auth/storageState.json
+auth/*.storageState.json
+
+# Generated artifacts
+test-results/
+playwright-report/
+reports/
+blob-report/
+downloads/
