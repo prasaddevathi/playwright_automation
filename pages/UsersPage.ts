@@ -1,4 +1,5 @@
 import { Locator, Page } from '@playwright/test';
+import type { Logger } from '../utils/logger';
 import { BasePage } from './BasePage';
 
 export class UsersPage extends BasePage {
@@ -9,8 +10,8 @@ export class UsersPage extends BasePage {
   readonly editEmailInput: Locator;
   readonly saveButton: Locator;
 
-  constructor(page: Page) {
-    super(page);
+  constructor(page: Page, logger: Logger) {
+    super(page, logger);
     this.page = page;
     this.searchInput = page.getByRole('searchbox', { name: 'Search users' });
     this.userTable = page.getByRole('table', { name: 'Users' });
@@ -20,7 +21,9 @@ export class UsersPage extends BasePage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/users');
+    await this.step('Open /users', async () => {
+      await this.page.goto('/users');
+    });
   }
 
   /**
@@ -33,21 +36,30 @@ export class UsersPage extends BasePage {
   }
 
   async searchUser(name: string): Promise<void> {
-    await this.searchInput.fill(name);
-    await this.searchInput.press('Enter');
+    await this.step(`Search users for "${name}"`, async () => {
+      await this.searchInput.fill(name);
+      await this.searchInput.press('Enter');
+    });
   }
 
   async editUser(userName: string): Promise<void> {
-    await this.rowFor(userName).getByRole('button', { name: 'Edit' }).click();
+    await this.step(`Open edit dialog for "${userName}"`, async () => {
+      await this.rowFor(userName).getByRole('button', { name: 'Edit' }).click();
+    });
   }
 
   async updateEmail(email: string): Promise<void> {
-    await this.editEmailInput.fill(email);
-    await this.saveButton.click();
+    // The new address itself is personal data, so only the action is logged.
+    await this.step('Update email and save', async () => {
+      await this.editEmailInput.fill(email);
+      await this.saveButton.click();
+    });
   }
 
   async isUserListed(userName: string): Promise<boolean> {
-    return this.rowFor(userName).isVisible();
+    const listed = await this.rowFor(userName).isVisible();
+    this.log.debug(`User "${userName}" listed: ${listed}`);
+    return listed;
   }
 
   rowEmailCell(userName: string): Locator {

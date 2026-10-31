@@ -409,14 +409,24 @@ attribute via `testIdAttribute`.
 ### Logging
 
 `utils/logger.ts` is a small, dependency-free structured logger
-(`debug` / `info` / `warn` / `error`, scoped via `logger.child()`).
+(`debug` / `info` / `warn` / `error`, scoped via `logger.child()`). It covers
+the **whole framework** — SauceDemo and the original app's UI, API and e2e
+suites alike.
 
-- **Per test:** the auto `logger` fixture logs START/END with status and
-  duration, plus browser console errors, uncaught page errors and failed or
-  4xx/5xx requests. The full log is attached to the test in the HTML report.
-- **Per action:** `SauceBasePage.step()` wraps each page action in `test.step`
-  (named, timed nodes in the report/trace) and logs it with duration and, on
-  failure, the error. Passwords are never logged.
+- **Per test:** `fixtures/loggerFixture.ts` is the shared base of both
+  `testFixtures.ts` and `sauceFixtures.ts`. Its auto `logger` fixture logs
+  START/END with status and duration, and the full log is attached to the test
+  in the HTML report. It also wraps the built-in `page` fixture to capture
+  browser console errors, uncaught page errors and failed or 4xx/5xx requests —
+  so API-only tests are logged without launching a browser.
+- **Per action:** `loggedStep()` in `utils/step.ts` wraps each page and
+  component action in `test.step` (named, timed nodes in the report/trace) and
+  logs it with duration and, on failure, the error. `BasePage.step()` and
+  `SauceBasePage.step()` both delegate to it.
+- **API and DB:** `ApiClient` logs `METHOD path → status (ms)` and network
+  failures; `DbClient` logs connections and each query's row count.
+- **Never logged:** passwords, tokens, request/response bodies, DB credentials
+  and query parameter values.
 - **Per run:** every worker appends to `reports/logs/execution.log`; each line
   carries a timestamp, level, worker index and `test › PageObject` scope.
 

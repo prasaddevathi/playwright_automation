@@ -30,13 +30,16 @@ const CONSOLE_LEVEL = parseLevel(process.env.LOG_CONSOLE_LEVEL, 'warn');
 export const LOG_DIR = path.resolve(__dirname, '..', 'reports', 'logs');
 const EXECUTION_LOG = path.join(LOG_DIR, 'execution.log');
 
+// Playwright error messages carry ANSI colour codes meant for the terminal.
+const ANSI_CODES = /\u001b\[[0-9;]*m/g;
+
 function formatMeta(meta: unknown): string {
   if (meta === undefined) return '';
-  if (meta instanceof Error) return ` | ${meta.stack ?? meta.message}`;
+  if (meta instanceof Error) return ` | ${(meta.stack ?? meta.message).replace(ANSI_CODES, '')}`;
   try {
-    return ` | ${JSON.stringify(meta)}`;
+    return ` | ${JSON.stringify(meta)?.replace(/\\u001b\[[0-9;]*m/g, '')}`;
   } catch {
-    return ` | ${String(meta)}`;
+    return ` | ${String(meta).replace(ANSI_CODES, '')}`;
   }
 }
 

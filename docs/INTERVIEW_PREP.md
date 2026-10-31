@@ -202,7 +202,13 @@ The report shows steps and errors. The logger adds:
 - **Plain text** that can be searched, archived by CI, or sent to a log platform.
 
 **Q: Walk me through how the logger works.**
-[logger.ts](../utils/logger.ts) has four levels (`debug`, `info`, `warn`, `error`) and `child(scope)`. An auto fixture creates one logger per test. Each page object gets `logger.child('InventoryPage')`, which writes into the same buffer under its own name. Each line goes to an in-memory buffer (attached to the test's report entry at the end), to `reports/logs/execution.log`, and to the console if it meets `LOG_CONSOLE_LEVEL`.
+[logger.ts](../utils/logger.ts) has four levels (`debug`, `info`, `warn`, `error`) and `child(scope)`. An auto fixture in [loggerFixture.ts](../fixtures/loggerFixture.ts), the shared base of both fixture files, creates one logger per test. Each page object gets `logger.child('InventoryPage')`, which writes into the same buffer under its own name. Each line goes to an in-memory buffer (attached to the test's report entry at the end), to `reports/logs/execution.log`, and to the console if it meets `LOG_CONSOLE_LEVEL`. Every page and component action goes through one helper, `loggedStep()` in [step.ts](../utils/step.ts), and the API and database clients log each call.
+
+**Q: Why do the browser listeners wrap the `page` fixture instead of living in the logger fixture? [Senior]**
+An auto fixture runs for every test. If it depended on `page`, every test, including pure API tests, would launch a browser just to be logged. Wrapping Playwright's built-in `page` fixture attaches the listeners only when a test actually uses a browser. API tests stay fast but are still fully logged.
+
+**Q: How did you avoid duplicating the logging code across two apps?**
+One shared base fixture and one shared `loggedStep()` helper. Both `BasePage` and `SauceBasePage` delegate their `step()` to it, and both fixture files extend `loggerFixture.ts`. A new fixture file gets logging by extending that base instead of `@playwright/test`.
 
 **Q: Why is the console level separate from the file level?**
 With 4 parallel workers, step-level console lines interleave and bury the reporter's output. The file keeps full detail; the console shows only warnings and errors by default.

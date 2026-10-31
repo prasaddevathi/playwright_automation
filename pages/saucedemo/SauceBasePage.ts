@@ -1,15 +1,15 @@
-import { Locator, Page, test } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import type { Logger } from '../../utils/logger';
+import { loggedStep } from '../../utils/step';
 
 /**
  * Shared behavior for every SauceDemo page: the page title banner, a
  * logger scoped to the concrete page class, and `step()`.
  *
- * `step()` is the one place where logging and reporting meet: each public
- * page action is wrapped in a Playwright `test.step` (so it shows up as a
- * named, timed node in the HTML report and trace viewer) and logged with
- * its duration and, on failure, the error. Page classes stay free of
- * try/catch and timing boilerplate.
+ * `step()` delegates to the framework-wide `loggedStep` (utils/step.ts):
+ * each public page action becomes a named, timed node in the HTML report
+ * and trace viewer, and is logged with its duration and, on failure, the
+ * error. Page classes stay free of try/catch and timing boilerplate.
  */
 export abstract class SauceBasePage {
   protected readonly page: Page;
@@ -34,16 +34,7 @@ export abstract class SauceBasePage {
     });
   }
 
-  protected async step<T>(name: string, body: () => Promise<T>): Promise<T> {
-    const started = Date.now();
-    this.log.info(`→ ${name}`);
-    try {
-      const result = await test.step(name, body, { box: true });
-      this.log.debug(`✓ ${name} (${Date.now() - started} ms)`);
-      return result;
-    } catch (error) {
-      this.log.error(`✗ ${name} failed after ${Date.now() - started} ms`, error);
-      throw error;
-    }
+  protected step<T>(name: string, body: () => Promise<T>): Promise<T> {
+    return loggedStep(this.log, name, body);
   }
 }

@@ -1,6 +1,6 @@
 # SauceDemo Automation Framework Guide
 
-Last updated: Oct 29, 2026 · Prasad Devathi
+Last updated: Oct 31, 2026 · Prasad Devathi
 
 ## Overview
 
@@ -309,9 +309,11 @@ playwright-automation/
 ├── components/saucedemo/
 │   └── SauceHeaderComponent.ts       # cart link, badge, burger menu, logout
 ├── fixtures/
-│   └── sauceFixtures.ts              # page objects + auto logger fixture
+│   ├── loggerFixture.ts              # shared base test: auto logger + browser-event capture
+│   └── sauceFixtures.ts              # SauceDemo page objects (extends loggerFixture)
 ├── utils/
 │   ├── logger.ts                     # structured logger
+│   ├── step.ts                       # loggedStep(): log + time + report one action
 │   └── sauceDataUtils.ts             # catalog lookup, faker customers, price parsing
 ├── types/
 │   └── saucedemo.types.ts            # Product, CustomerInfo, SortOption
@@ -437,6 +439,24 @@ The console threshold is separate on purpose. With several parallel workers, ste
 
 Passwords are never logged. `SauceLoginPage.login()` records only whether a password was provided. Follow the same rule for any new secret, token or personal data.
 
+### Where logging is applied
+
+Logging covers the **whole framework**, not just SauceDemo. Both fixture files extend one shared base, `fixtures/loggerFixture.ts`, and every page and component action goes through one shared helper, `loggedStep()` in `utils/step.ts`.
+
+| Layer | SauceDemo | Original framework | What is logged |
+| --- | --- | --- | --- |
+| Every test | `sauceFixtures.ts` | `testFixtures.ts` | Start and end, status, duration, retry, failure reason; log attached to the report |
+| Browser events | Wrapped `page` fixture | Wrapped `page` fixture | Console errors, page exceptions, failed and 4xx/5xx requests |
+| Page actions | `SauceBasePage.step()` | `BasePage.step()` | Each action with duration, or the error |
+| Components | `SauceHeaderComponent` | `HeaderComponent`, `NavigationComponent` | Each action with duration, or the error |
+| Login setup | `saucedemo.setup.ts` | `auth.setup.ts` | Login steps and the saved session path |
+| API client | Not used | `ApiClient` | `METHOD path → status (ms)`; network failures as errors |
+| Database client | Not used | `DbClient` | Server and database on connect; each query's row count and duration |
+
+Browser listeners attach by wrapping Playwright's built-in `page` fixture, not inside `logger`. A pure API test never asks for `page`, so it is still fully logged but never launches a browser just for logging.
+
+**Not logged, by design:** passwords, tokens, request and response bodies, database credentials, query parameter values, and new email addresses typed into forms. These carry secrets or personal data.
+
 ## Page objects
 
 There is one class per SauceDemo screen, each in `pages/saucedemo/`. A page object exposes its elements as public `readonly` locators, so tests can assert on them. It exposes user actions as `async` methods, so tests read like the user's journey. Page objects never assert; that is the test's job.
@@ -544,11 +564,11 @@ The checkout is one flow across three URLs, so its three small classes share one
 
 ### sauceFixtures.ts: how tests get their objects
 
-`fixtures/sauceFixtures.ts` extends Playwright's `test` with eight fixtures and re-exports `expect`. Every SauceDemo spec imports `test` and `expect` from here, never from `@playwright/test`.
+`fixtures/sauceFixtures.ts` extends the shared `test` (from loggerFixture.ts) with seven page-object fixtures and re-exports `expect`. Every SauceDemo spec imports `test` and `expect` from here, never from `@playwright/test`.
 
 | Fixture | Provides | Built from |
 | --- | --- | --- |
-| `logger` | The test's `Logger` (automatic) | `page`, `testInfo` |
+| `logger` | The test's `Logger` (automatic) | `testInfo`; inherited from `loggerFixture.ts` |
 | `loginPage` | `SauceLoginPage` | `page`, `logger` |
 | `inventoryPage` | `InventoryPage` | `page`, `logger` |
 | `cartPage` | `CartPage` | `page`, `logger` |
@@ -567,17 +587,23 @@ The checkout is one flow across three URLs, so its three small classes share one
 
 ### The automatic logger fixture
 
-`logger` is declared with `{ auto: true }`, so it runs for **every** test, including tests that never ask for it. Every test is logged without anyone having to remember to opt in. For each test it:
+`fixtures/loggerFixture.ts` is the shared base for **both** fixture files (`sauceFixtures.ts` and the original framework's `testFixtures.ts`). Its `logger` is declared with `{ auto: true }`, so it runs for **every** test, including tests that never ask for it. Every test is logged without anyone having to remember to opt in. For each test it:
 
 1. Creates a logger scoped to the test's full title, and logs `▶ START` with the project name and retry number.
-2. Subscribes to the page's browser events:
-   - `console` errors, logged as `warn` `[browser console]`
-   - `pageerror` (uncaught JavaScript exceptions), logged as `error` `[page error]`
-   - `requestfailed` (DNS, aborted, offline), logged as `warn` `[network]`
-   - `response` with status 400 or higher, logged as `debug` `[network]`
-3. Hands the logger to the test and to every page object built from it.
-4. After the test, logs `■ END <STATUS> in <ms>`. If the result was not the expected one, the line is logged as `error` with the failure message, ANSI colour codes stripped.
-5. Attaches the test's full log to the HTML report as `execution-log`.
+2. Hands the logger to the test and to every page object, component and client built from it.
+3. After the test, logs `■ END <STATUS> in <ms>`. If the result was not the expected one, the line is logged as `error` with the failure message.
+4. Attaches the test's full log to the HTML report as `execution-log`.
+
+The same file also wraps Playwright's built-in `page` fixture to subscribe to browser events:
+
+- `console` errors, logged as `warn` `[browser console]`
+- `pageerror` (uncaught JavaScript exceptions), logged as `error` `[page error]`
+- `requestfailed` (DNS, aborted, offline), logged as `warn` `[network]`
+- `response` with status 400 or higher, logged as `debug` `[network]`
+
+**Why wrap `page` instead of doing this inside `logger`?** An auto fixture that depended on `page` would open a browser for every test, including pure API tests. Wrapping `page` means the listeners attach only when a test actually uses a browser.
+
+To give a new fixture file the same logging, extend it from `./loggerFixture` instead of `@playwright/test`.
 
 ## Test data and utilities
 
